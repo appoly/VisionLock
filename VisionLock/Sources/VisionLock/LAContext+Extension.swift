@@ -12,12 +12,8 @@ internal extension LAContext {
     func faceID(reason: String) async throws -> Bool {
         var error: NSError?
         return try await withCheckedThrowingContinuation { continuation in
-            if self.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-                guard self.biometryType == .faceID else {
-                    continuation.resume(throwing: "Face ID Enrollment Required")
-                    return
-                }
-                self.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { (success, error) in
+            if self.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
+                self.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { (success, error) in
                     guard error == nil else {
                         continuation.resume(throwing: error!)
                         return
