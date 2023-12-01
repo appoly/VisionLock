@@ -21,9 +21,12 @@ public class VisionLock: NSObject, ObservableObject {
     
     private var detectionRequests: [VNDetectFaceRectanglesRequest]?
     private var trackingRequests: [VNTrackObjectRequest]?
+    private let delay: TimeInterval
+    private var timer: Timer?
     private lazy var sequenceRequestHandler = VNSequenceRequestHandler()
     
-    public override init() {
+    public init(delay: TimeInterval = .zero) {
+        self.delay = delay
         super.init()
         setupObservers()
         setupNotifications()
@@ -63,11 +66,14 @@ extension VisionLock {
         $facePresent.sink { newValue in
             DispatchQueue.main.async { [weak self] in
                 guard let self = self, newValue != self.oldValue else { return }
+                self.timer?.invalidate()
                 if !newValue {
-                    Task { [weak self] in
-                        NotificationCenter.default.post(name: .faceNotPresent, object: nil)
-                        try? await self?.start()
-                    }
+                    self.timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false, block: { _ in
+                        Task { [weak self] in
+                            NotificationCenter.default.post(name: .faceNotPresent, object: nil)
+                            try? await self?.start()
+                        }
+                    })
                 } else {
                     NotificationCenter.default.post(name: .facePresent, object: nil)
                 }
